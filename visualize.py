@@ -78,7 +78,7 @@ def visualize_reconstructed(input, data,s):
 
 
 
-def visualize(image, noisy_image, GT, pred_mask, anomaly_map, category) :
+def visualize(image, noisy_image, GT, pred_mask, anomaly_map, category, save_dir) :
     for idx, img in enumerate(image):
         plt.figure(figsize=(11,11))
         plt.subplot(1, 2, 1).axis('off')
@@ -91,7 +91,7 @@ def visualize(image, noisy_image, GT, pred_mask, anomaly_map, category) :
 
         plt.imshow(show_tensor_image(noisy_image[idx]))
         plt.title('reconstructed image')
-        plt.savefig('results/{}sample{}.png'.format(category,idx))
+        plt.savefig('{}/{}sample{}.png'.format(save_dir,category,idx))
         plt.close()
 
         plt.figure(figsize=(11,11))
@@ -101,7 +101,7 @@ def visualize(image, noisy_image, GT, pred_mask, anomaly_map, category) :
 
         plt.subplot(1, 3, 1)
         plt.imshow(show_tensor_mask(GT[idx]))
-        plt.title('ground truth')
+        plt.title(f'ground truth ({torch.sum(GT[idx])}))')
 
         plt.subplot(1, 3, 2)
         plt.imshow(show_tensor_mask(pred_mask[idx]))
@@ -110,7 +110,7 @@ def visualize(image, noisy_image, GT, pred_mask, anomaly_map, category) :
         plt.subplot(1, 3, 3)
         plt.imshow(show_tensor_image(anomaly_map[idx]))
         plt.title('heat map')
-        plt.savefig('results/{}sample{}heatmap.png'.format(category,idx))
+        plt.savefig('{}/{}sample{}heatmap.png'.format(save_dir, category,idx))
         plt.close()
 
 

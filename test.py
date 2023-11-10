@@ -15,12 +15,16 @@ def evaluate(unet, config):
     Evaluate the model on the test set
     visulaize the results
     '''
-    test_dataset = Dataset_maker(
-        root= config.data.data_dir,
-        category=config.data.category,
-        config = config,
-        is_train=False,
-    )
+    random.seed(config.model.seed)
+    if config.data.name == "PBA":
+        test_dataset = PhenoBenchAnomalyDataset_DDAD(config.data.data_dir, "val", 0.0, config, overfit=config.model.overfit)
+    else:
+        test_dataset = Dataset_maker(
+            root= config.data.data_dir,
+            category=config.data.category,
+            config = config,
+            is_train=False,
+        )
     testloader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size= config.data.batch_size,
@@ -43,7 +47,9 @@ def evaluate(unet, config):
 
 
     with torch.no_grad():
-        for data, targets, labels in testloader:
+        for i, (data, targets, labels) in enumerate(testloader):
+            # if (i * config.data.batch_size) > 50:
+            #     break
             data = data.to(config.model.device)
                 
             test_trajectoy_steps = torch.Tensor([config.model.test_trajectoy_steps]).type(torch.int64).to(config.model.device)
@@ -56,12 +62,12 @@ def evaluate(unet, config):
 
             anomaly_map = heat_map(data_reconstructed, data, feature_extractor, config)
 
-            transform = transforms.Compose([
-                transforms.CenterCrop((224)), 
-            ])
+            # transform = transforms.Compose([
+            #     transforms.CenterCrop((224)), 
+            # ])
 
-            anomaly_map = transform(anomaly_map)
-            targets = transform(targets)
+            # anomaly_map = transform(anomaly_map)
+            # targets = transform(targets)
             forward_list.append(data)
             anomaly_map_list.append(anomaly_map)
             gt_list.append(targets)
@@ -80,9 +86,11 @@ def evaluate(unet, config):
     anomaly_map_list = torch.cat(anomaly_map_list, dim=0)
     pred_mask = (anomaly_map_list> threshold).float()
     gt_list = torch.cat(gt_list, dim=0)
-    if not os.path.exists('results'):
-            os.mkdir('results')
-    visualize(forward_list, reconstructed_list, gt_list, pred_mask, anomaly_map_list, config.data.category)
+
+    save_dir = f"{config.model.checkpoint_dir}/{config.data.category}/results"
+    if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+    visualize(forward_list, reconstructed_list, gt_list, pred_mask, anomaly_map_list, config.data.category, save_dir)
     
 
 

@@ -36,12 +36,15 @@ def Domain_adaptation(unet, config, fine_tune):
     feature_extractor.to(config.model.device)  
 
 
-    train_dataset = Dataset_maker(
-        root= config.data.data_dir,
-        category=config.data.category,
-        config = config,
-        is_train=True,
-    )
+    if config.data.name == "PBA":
+        train_dataset = PhenoBenchAnomalyDataset_DDAD(config.data.data_dir, "train", 0.0, config)
+    else:
+        train_dataset = Dataset_maker(
+            root= config.data.data_dir,
+            category=config.data.category,
+            config = config,
+            is_train=True,
+        )
     trainloader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=config.data.batch_size,
@@ -66,6 +69,8 @@ def Domain_adaptation(unet, config, fine_tune):
         
         for epoch in range(config.model.DA_epochs):
             for step, batch in enumerate(trainloader):
+                if (step * config.data.batch_size) > 500:
+                    break
                 half_batch_size = batch[0].shape[0]//2
                 target = batch[0][:half_batch_size].to(config.model.device)  
                 input = batch[0][half_batch_size:].to(config.model.device)     
@@ -74,7 +79,7 @@ def Domain_adaptation(unet, config, fine_tune):
                 noisy_image = at.sqrt() * input + (1- at).sqrt() * torch.randn_like(input).to('cuda')
                 seq = range(0 , config.model.test_trajectoy_steps_DA, config.model.skip_DA)
 
-                reconstructed = Reconstruction(target, noisy_image, seq, unet, config, config.model.w)
+                reconstructed = Reconstruction(target, noisy_image, seq, unet, config, config.model.w_DA)
                 data_reconstructed = reconstructed[-1].to(config.model.device)
 
 

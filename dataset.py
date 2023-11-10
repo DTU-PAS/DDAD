@@ -11,7 +11,32 @@ from torchvision import transforms
 import torch.nn.functional as F
 import torchvision.datasets as datasets
 from torchvision.datasets import CIFAR10
+from phenobench_anomaly.datasets.phenobench_anomaly_dataset import PhenoBenchAnomalyDataset
+import albumentations as A
+from albumentations.pytorch.transforms import ToTensorV2
 
+
+class PhenoBenchAnomalyDataset_DDAD(PhenoBenchAnomalyDataset):
+    def __init__(self, root_dir, split, weed_percentage, config, transform=None, overfit=False):
+        super().__init__(root_dir, split, weed_percentage, transform=None, overfit=overfit)
+        self.transform = A.Compose([
+            A.Resize(config.data.image_size, config.data.image_size),
+            A.Normalize(mean=0.5, std=0.5),
+            # ToTensorV2()
+        ])
+
+    def __getitem__(self, idx):
+        sample = super().__getitem__(idx)
+        label = 'good'
+        if self.split == "train":
+            return sample["image"], label
+        elif self.split == "val":
+            ano_mask = np.zeros_like(sample["semantics"])
+            ano_mask[sample["semantics"] == 2] = 1
+            if np.sum(ano_mask) > 0:
+                label = 'defective'
+            ano_mask = np.expand_dims(ano_mask, axis=0)
+            return sample["image"], ano_mask, label
 
 
 class Dataset_maker(torch.utils.data.Dataset):
